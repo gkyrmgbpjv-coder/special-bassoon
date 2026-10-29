@@ -42,6 +42,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{scroll-padding-top:16px}
 @media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 body{background:var(--ground);color:var(--ink);font-family:var(--text);font-size:18px;line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
@@ -89,7 +90,7 @@ p{margin:0}
 .phone{font-size:17px;color:var(--ink-soft)}
 .phone b{color:var(--ink);font-weight:600;user-select:all}
 .stage{position:relative;aspect-ratio:1/1;max-width:100%;width:100%;max-height:680px;margin-inline:auto}
-.stage canvas{display:block;width:100%;height:100%;touch-action:pan-y;cursor:grab;outline:none}
+.stage canvas{display:block;width:100%;height:100%;touch-action:pan-y;cursor:grab;outline:none;--fx:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);--fy:linear-gradient(transparent,#000 4%,#000 88%,transparent);-webkit-mask-image:var(--fx),var(--fy);-webkit-mask-composite:source-in;mask-image:var(--fx),var(--fy);mask-composite:intersect}
 .stage canvas:active{cursor:grabbing}
 .stage:focus-within{outline:3px solid var(--amber);outline-offset:4px;border-radius:12px}
 .stage .hint{position:absolute;left:50%;bottom:6%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink-soft);white-space:nowrap;pointer-events:none}
@@ -99,9 +100,12 @@ p{margin:0}
 .caption{text-align:center;font-size:15px;color:var(--ink-soft);margin-top:-8px}
 @media (max-width:860px){
   .hero{grid-template-columns:minmax(0,1fr);padding-block:8px 56px}
-  .stage{aspect-ratio:5/4;order:-1}
-  .caption{order:-1;margin-top:-16px}
+  .hero-visual{order:-1}
+  .stage{aspect-ratio:5/4}
+  .caption{margin-top:-4px}
 }
+
+main{overflow-x:clip}
 
 /* Section générique */
 .sec{padding-block:clamp(88px,12vw,168px)}
@@ -225,7 +229,7 @@ p{margin:0}
 .cookies button{min-height:44px;padding:0 18px;border-radius:999px;font:600 15px var(--text);cursor:pointer;border:2px solid var(--paper-ink)}
 .cookies .yes{background:var(--paper-ink);color:var(--paper)}
 .cookies .no{background:transparent;color:var(--paper-ink)}
-.cookies a{font-size:14px;color:var(--paper-ink)}
+.cookies a{display:inline-flex;align-items:center;min-height:44px;padding:0 4px;font-size:14px;color:var(--paper-ink)}
 @media (max-width:860px){.cookies{bottom:calc(92px + env(safe-area-inset-bottom, 0px))}}
 
 /* Pages légales (vues internes) */
@@ -293,7 +297,7 @@ p{margin:0}
     </div>
     <p class="hero-meta in-3"><span><span class="stars" aria-hidden="true">★★★★★</span> <strong class="num">4,6/5</strong> sur 247 avis Google</span><span><strong class="num">30–40 €</strong> par personne</span></p>
   </div>
-  <div>
+  <div class="hero-visual">
     <div class="stage" id="stage">
       <canvas id="scene" tabindex="0" role="img" aria-label="Côte de Simmental maturée 30 jours sur sa planche de bois, en 3D. Faites glisser ou utilisez les flèches pour la faire tourner."></canvas>
       <p class="hint" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Glissez pour tourner la côte</p>
@@ -561,6 +565,7 @@ p{margin:0}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>window.THREE || document.write('<script src="vendor/three.min.js"><\/script>');</script>
 <script>
 (function(){
   document.documentElement.classList.add('js');
@@ -611,6 +616,8 @@ p{margin:0}
     var ok = raw !== '' && Number.isInteger(n) && n >= 1 && n <= 12;
     g.setAttribute('aria-invalid', ok ? 'false' : 'true');
     if (!ok){
+      w.innerHTML = '–<small>kg</small>'; p.innerHTML = '–<small>€</small>';
+      minus.disabled = !(n > 1); plus.disabled = !(n < 12);
       err.hidden = false;
       err.textContent = raw === '' ? 'Indiquez un nombre de convives, entre 1 et 12.' : (n > 12 ? 'Pour plus de 12 convives, appelez le restaurant pour organiser la découpe.' : 'Le nombre de convives doit être un nombre entier entre 1 et 12.');
       return;
@@ -652,7 +659,7 @@ p{margin:0}
       return true;
     }
     var v = showView(id);
-    if (v){ window.scrollTo(0, 0); var hh = v.querySelector('h1'); if (hh) hh.focus({preventScroll: true}); return true; }
+    if (v){ window.scrollTo({top: 0, behavior: 'instant'}); var hh = v.querySelector('h1'); if (hh) hh.focus({preventScroll: true}); return true; }
     var el = document.getElementById(id);
     if (el){
       el.scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block: 'start'});
@@ -684,7 +691,11 @@ p{margin:0}
     if (href.indexOf('tel:') === 0 && !a.hasAttribute('data-direct')){ openCall(); }
   });
   function showViewName(id){ return id === 'mentions' || id === 'confidentialite'; }
-  function route(){ var id = (location.hash || '').slice(1); if (showViewName(id)) goTo(id); else if (root.classList.contains('is-legal')) showView(null); }
+  function route(){
+    var id = (location.hash || '').slice(1);
+    if (showViewName(id)) goTo(id);
+    else if (root.classList.contains('is-legal')){ showView(null); if (id && id !== 'accueil') goTo(id); }
+  }
   window.addEventListener('hashchange', route);
   route();
 
